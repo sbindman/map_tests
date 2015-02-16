@@ -1,0 +1,57 @@
+<!doctype html>
+<html>
+<head>
+  <!-- use this to connect back to boostrap when want that functionality -->
+    <!-- <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css"> -->
+
+  <script src="http://code.jquery.com/jquery-1.11.2.min.js"></script>
+
+  <!-- I am not sure what this stuff does so will leave it in case I need it la -->
+  <!--   <link rel="stylesheet" href='http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css' /> -->
+  <!--   // <script src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script> -->
+
+
+  <meta charset=utf-8 />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Map</title>
+
+  <!-- map tiles -->
+  <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+  <script src='https://api.tiles.mapbox.com/mapbox.js/v2.1.5/mapbox.js'></script>
+  <link href='https://api.tiles.mapbox.com/mapbox.js/v2.1.5/mapbox.css' rel='stylesheet' />
+
+  <!-- map style -->
+  <style>
+    body { margin:0; padding:0; }
+    #map { position:absolute; top:50px; bottom:100px; left:50px; width:100%; }
+  </style>
+
+  <!-- connect to jquery -->
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+</head>
+
+
+
+<body>
+  <!-- set up the map -->
+  <div id='map'></div>
+  <script>
+  L.mapbox.accessToken = 'pk.eyJ1Ijoic2JpbmRtYW4iLCJhIjoiaENWQnlrVSJ9.0DQyCLWgA0j8yBpmvt3bGA';
+  var map = L.mapbox.map('map', 'sbindman.l524amgg'); 
+  </script>
+
+  Elevation at your POI:
+  <div id="map-results"></div>
+
+
+
+
+  <script src="/static/click_return_elevation.js"></script>
+
+</body>
+</html>
+
+
+
+
