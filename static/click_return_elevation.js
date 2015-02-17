@@ -19,10 +19,31 @@ function collectLatLong(evt) {
  	console.log("long: " + evt.latlng.lng);
  	lat = evt.latlng.lat;
  	lng = evt.latlng.lng;
+ 	return ([lat,lng]);
 }
+
+
+// add a new line to a map
+var polyline = L.polyline([]).addTo(map);
+var points = [];
+
+function addPoint(evt) {
+	// take a new point and add it to the end of a line
+	var point = collectLatLong(evt);
+	polyline.addLatLng(point);
+	points.push(point);
+	$("#points").text(points);
+}
+
+
+function addLine(evt) {
+	//create a new line from a set of points
+}
+
 
 
 map.on('click', collectLatLong);
 map.on('click', showElevation);
+map.on('click', addPoint);
 
 
