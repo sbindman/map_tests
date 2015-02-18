@@ -1,18 +1,18 @@
 // Map test
 
-var lat = 0;
-var lng = 0;
+// var lat = 0;
+// var lng = 0;
 var routeNum = 1;
 var currentPolyline = null;
-route_list = [];
+var route_list = [];
 var points = [];
 
 
 
-function showElevation() {
+function showElevation(point) {
 	// function that (calculates) displays elevation for a given point
 	//working
-	elevation_url = 'https://api.tiles.mapbox.com/v4/surface/mapbox.mapbox-terrain-v1.json?layer=contour&fields=ele&points='+lng+','+lat+'&access_token=pk.eyJ1Ijoic2JpbmRtYW4iLCJhIjoiaENWQnlrVSJ9.0DQyCLWgA0j8yBpmvt3bGA';
+	var elevation_url = 'https://api.tiles.mapbox.com/v4/surface/mapbox.mapbox-terrain-v1.json?layer=contour&fields=ele&points='+point.lng+','+point.lat+'&access_token=pk.eyJ1Ijoic2JpbmRtYW4iLCJhIjoiaENWQnlrVSJ9.0DQyCLWgA0j8yBpmvt3bGA';
 	$.get(elevation_url, function (result) {
 		elevation = result.results[0].ele;
 		$("#map-results").text(elevation);
@@ -21,10 +21,11 @@ function showElevation() {
 }
 
 
+
 function getElevation(point) {
 	// function that (calculates) displays elevation for a given point
 	//working
-	elevation_url = 'https://api.tiles.mapbox.com/v4/surface/mapbox.mapbox-terrain-v1.json?layer=contour&fields=ele&points='+point[1]+','+point[0]+'&access_token=pk.eyJ1Ijoic2JpbmRtYW4iLCJhIjoiaENWQnlrVSJ9.0DQyCLWgA0j8yBpmvt3bGA';
+	var elevation_url = 'https://api.tiles.mapbox.com/v4/surface/mapbox.mapbox-terrain-v1.json?layer=contour&fields=ele&points='+point.lng+','+point.lat+'&access_token=pk.eyJ1Ijoic2JpbmRtYW4iLCJhIjoiaENWQnlrVSJ9.0DQyCLWgA0j8yBpmvt3bGA';
 	$.get(elevation_url, function (result) {
 		elevation = result.results[0].ele;
 		console.log("get elevation" + elevation);
@@ -33,21 +34,32 @@ function getElevation(point) {
 }
 
 
-function collectLatLong(evt) {
-	//function collects lat long for a given point
-	//working
-	console.log("lat:" + evt.latlng.lat);
- 	console.log("long: " + evt.latlng.lng);
- 	lat = evt.latlng.lat;
- 	lng = evt.latlng.lng;
- 	return ([lat,lng]);
+
+
+function getDirections(point1, point2) {
+	var direction_url = 'http://api.tiles.mapbox.com/v4/directions/mapbox.driving/'+point1+';'+point2+'.json?access_token=pk.eyJ1Ijoic2JpbmRtYW4iLCJhIjoiaENWQnlrVSJ9.0DQyCLWgA0j8yBpmvt3bGA'
+	var distance;
+	var duration;
+	var turn;
+	$.get(direction_url, function (result) {
+		distance = result.routes[0].distance; //distance is in meters, route 0 is the "optimal" route
+		duration = result.routes[0].duration; //time in seconds
+		turn = result.routes[0].steps[3].maneuver.type; //example left turn, looking at a single turn
+
+		console.log(distance);
+		console.log(duration);
+		console.log(turn);
+
+
+	});
 }
+//test
+getDirections([-122.42,37.78],[-122.52,37.88]);
 
 
 function addPoint(evt) {
 	// take a new point and add it to the end of a 
-	//working
-	var point = collectLatLong(evt);
+	var point = evt.latlng;
 	currentPolyline.polyline.addLatLng(point);
 	points.push(point);
 	$("#points").text(points);
@@ -70,14 +82,8 @@ function line(id) {
 //save a route
 function route() {
 	this.id = currentPolyline.id;
-	this.routePoints = currentPolyline.polyline.getLatLngs();
 	this.elevation = 0;
-
-
-	for (var i = 0; i < this.routePoints.length; i++) {
-		ele = 5;
-		console.log("ele" + ele);
-	}
+	this.routePoints = currentPolyline.polyline.getLatLngs();
 
 
 }
@@ -85,16 +91,14 @@ function route() {
 //create a new line object
 function startNewLine() {
 	var polyline = new line(routeNum);
-	//console.log("hello" + polyline);
-
 	currentPolyline = polyline;
 
 }
 
 function endLine() {
 	var route1 = new route();
-	console.log("route:"+route1.id);
-	route_list.push(route);
+	console.log("route:"+route1.routePoints[0]);
+	route_list.push(route1);
 
 	routeNum ++;
 	currentPolyline = null;
@@ -102,22 +106,31 @@ function endLine() {
 	
 }
 
+function showRouteList() {
+	var html = "";
+	for (var i = 0; i < route_list.length; i++) {
+		routeId = route_list[i].id;
+		routeEle = route_list[i].elevation;
+		routeFirstPoint = route_list[i].routePoints[0]; //test of how to display data
+		html += "<tr><td>"+routeId+"</td>"+routeEle+"<td>"+routeFirstPoint+"</td</tr>><br>";
+		console.log(html);
+	}
+	$("#route-info").append(html);
+}
 
-
-
-	// this.elevation = getElevation(point_list[0]);
-	// for (var i = 0; i < points.length; i++) {
-	// 	ele = getElevation(point_list[i]);
-	// 	console.log("q" + ele);
-	// 	this.elevation += ele;
-	// 	console.log("elevation:" + this.elevation);
-	// }
-	//create a new line from a set of points
 
 
 //button that starts a new route
 $("#add-route").on("click", startNewLine);
-//map.on('click', showElevation);
+$("#show-route").on("click", showRouteList);
+
+//show elevation on click
+map.on('click', function(evt) {
+	showElevation(evt.latlng);
+}
+);
+
+
 map.on('click', addPoint);
 map.on('dblclick', endLine);
 

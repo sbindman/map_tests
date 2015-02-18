@@ -22,8 +22,9 @@
 
   <!-- map style -->
   <style>
-    body { margin:0; padding:0; }
-    #map { position:absolute; top:100px; bottom:100px; left:50px; width:100%; }
+    body { margin:10px; padding:0; }
+    #map { position:absolute; top:200px; bottom:0; left:0; width:100%; }
+
   </style>
 
   <!-- connect to jquery -->
@@ -32,15 +33,8 @@
 </head>
 
 
-
 <body>
-  <!-- set up the map -->
-  <div id='map'></div>
-  <script>
-  L.mapbox.accessToken = 'pk.eyJ1Ijoic2JpbmRtYW4iLCJhIjoiaENWQnlrVSJ9.0DQyCLWgA0j8yBpmvt3bGA';
-  var map = L.mapbox.map('map', 'sbindman.l524amgg'); 
-  map.doubleClickZoom.disable();
-  </script>
+
 
   Elevation at your POI:
   <div id="map-results"></div>
@@ -50,8 +44,26 @@
 
 
   <button id="add-route" class="route-button">Add Route</button>
+  <br>
+  Summary of Route Information
+  <br>
+  <button id="show-route" class="show-route">Show Routes</button>
+  <br>
+  id elevation safety
+  <table>
+    <tbody>
+      <tr><div id="route-info"></div></tr>
+    </tbody>
+  </table>
 
 
+  <!-- set up the map -->
+  <div id='map'></div>
+  <script>
+  L.mapbox.accessToken = 'pk.eyJ1Ijoic2JpbmRtYW4iLCJhIjoiaENWQnlrVSJ9.0DQyCLWgA0j8yBpmvt3bGA';
+  var map = L.mapbox.map('map', 'sbindman.l524amgg'); 
+  map.doubleClickZoom.disable();
+  </script>
 
 
   <script src="/static/click_return_elevation.js"></script>
