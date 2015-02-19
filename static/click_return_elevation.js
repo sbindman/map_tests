@@ -1,13 +1,19 @@
 // Map test
 
-// var lat = 0;
-// var lng = 0;
-var routeNum = 1;
-var currentPolyline = null;
+//global variables
+var routeNum = 0;
+var currentLine = null;
 var route_list = [];
 var points = [];
 
+//tests
+var exRoute;
+var exID;
+var exElevation;
 
+var routeDict = {};
+
+//api connections
 
 function showElevation(point) {
 	// function that (calculates) displays elevation for a given point
@@ -21,115 +27,125 @@ function showElevation(point) {
 }
 
 
-
-function getElevation(point) {
+function getElevation(point, callback) {
 	// function that (calculates) displays elevation for a given point
-	//working
 	var elevation_url = 'https://api.tiles.mapbox.com/v4/surface/mapbox.mapbox-terrain-v1.json?layer=contour&fields=ele&points='+point.lng+','+point.lat+'&access_token=pk.eyJ1Ijoic2JpbmRtYW4iLCJhIjoiaENWQnlrVSJ9.0DQyCLWgA0j8yBpmvt3bGA';
 	$.get(elevation_url, function (result) {
 		elevation = result.results[0].ele;
 		console.log("get elevation" + elevation);
-		return elevation;
+		return callback(undefined, elevation);
 	});
 }
 
 
+// function getDirections(point1, point2) {
+// 	var direction_url = 'http://api.tiles.mapbox.com/v4/directions/mapbox.driving/'+point1+';'+point2+'.json?access_token=pk.eyJ1Ijoic2JpbmRtYW4iLCJhIjoiaENWQnlrVSJ9.0DQyCLWgA0j8yBpmvt3bGA'
+// 	var distance;
+// 	var duration;
+// 	var turn;
+// 	$.get(direction_url, function (result) {
+// 		distance = result.routes[0].distance; //distance is in meters, route 0 is the "optimal" route
+// 		duration = result.routes[0].duration; //time in seconds
+// 		turn = result.routes[0].steps[3].maneuver.type; //example left turn, looking at a single turn
+
+// 		console.log(distance);
+// 		console.log(duration);
+// 		console.log(turn);
+// 		console.log("hello");
+// 		console.log("result" + result);
+// 		return callback (undefined, result);
 
 
-function getDirections(point1, point2) {
-	var direction_url = 'http://api.tiles.mapbox.com/v4/directions/mapbox.driving/'+point1+';'+point2+'.json?access_token=pk.eyJ1Ijoic2JpbmRtYW4iLCJhIjoiaENWQnlrVSJ9.0DQyCLWgA0j8yBpmvt3bGA'
-	var distance;
-	var duration;
-	var turn;
-	$.get(direction_url, function (result) {
-		distance = result.routes[0].distance; //distance is in meters, route 0 is the "optimal" route
-		duration = result.routes[0].duration; //time in seconds
-		turn = result.routes[0].steps[3].maneuver.type; //example left turn, looking at a single turn
+// 	});
+// }
 
-		console.log(distance);
-		console.log(duration);
-		console.log(turn);
+//   var ex = getDirections([[37.759, -122.42487], [37.749, -122.42477]]);
 
-
-	});
-}
-//test
-getDirections([-122.42,37.78],[-122.52,37.88]);
-
-
-function addPoint(evt) {
-	// take a new point and add it to the end of a 
-	var point = evt.latlng;
-	currentPolyline.polyline.addLatLng(point);
-	points.push(point);
-	$("#points").text(points);
-	console.log("points: " + points);
-	listPoints(currentPolyline);
-}
-
-
-function listPoints(line) {
-	linePoints = line.polyline.getLatLngs();
-	console.log("listPoints:" + linePoints.length);
-}
 
 //constructor for a new line object
 function line(id) {
 	this.id = id;
 	this.polyline = L.polyline([]).addTo(map);
+	this.elevation = 10;
+	//more data associated with a specific line
 }
 
-//save a route
-function route() {
-	this.id = currentPolyline.id;
-	this.elevation = 0;
-	this.routePoints = currentPolyline.polyline.getLatLngs();
 
+//general functions
 
+function addPoint(evt) {
+	// take a new point and add it to the end of a 
+	var point = evt.latlng;
+	currentLine.polyline.addLatLng(point);
+
+	//extra text to display points
+	points.push(point);
+	$("#points").text(points);
+	console.log("points: " + points);
 }
 
 //create a new line object
 function startNewLine() {
 	var polyline = new line(routeNum);
-	currentPolyline = polyline;
-
+	currentLine = polyline;
 }
 
 function endLine() {
-	var route1 = new route();
-	console.log("route:"+route1.routePoints[0]);
-	route_list.push(route1);
+	routeDict[currentLine.id] = currentLine;
+	calcElevation(currentLine.id);
 
-	routeNum ++;
-	currentPolyline = null;
-	points = [];
-	
-}
-
-function showRouteList() {
-	var html = "";
-	for (var i = 0; i < route_list.length; i++) {
-		routeId = route_list[i].id;
-		routeEle = route_list[i].elevation;
-		routeFirstPoint = route_list[i].routePoints[0]; //test of how to display data
-		html += "<tr><td>"+routeId+"</td>"+routeEle+"<td>"+routeFirstPoint+"</td</tr>><br>";
-		console.log(html);
+	setTimeout(function () {
+		routeNum ++;
+		currentLine = null;
+	} 
+		, 2000);	
 	}
-	$("#route-info").append(html);
+
+
+function calcElevation (routeID) {
+	// calculates overall elevation
+	var routeID = routeID; //asynchronous fix
+	var positiveEle = 0; //to be used laster
+	var negativeEle = 0; // to be used later
+	var totalEle = 10; //does not take into account total positive or total neg
+	var routePoints = routeDict[routeID].polyline.getLatLngs();
+	console.log("rp"+routePoints);
+	for (var i = 0; i < routePoints.length; i++) {
+		elevation = getElevation(routePoints[i], function(err, ele) {
+			totalEle += ele;
+		});
+	}
+	setTimeout(function () {  //should be fixed to be a callback rather than this
+		routeDict[routeID].elevation = totalEle;
+		console.log(routeDict[routeID].elevation);
+	} 
+		, 1000);	
+	}
+
+
+function showRouteDict () {
+	var html = "";
+	for (var i = 0; i < Object.keys(routeDict).length; i++) {
+		html += '<div>id: ' + i + "  route elevation: " + routeDict[i].elevation + '</div>';
+	}
+	$("#route-info").html(html);
 }
 
+
+function standardizeData () {
+	//will run through all of the routes and update all of the attributes to have an additional field with standardized rather than raw values
+}
 
 
 //button that starts a new route
 $("#add-route").on("click", startNewLine);
-$("#show-route").on("click", showRouteList);
+$("#calcElevation").on("click", calcElevation);
+$("#routes").on("click", showRouteDict);
 
 //show elevation on click
 map.on('click', function(evt) {
 	showElevation(evt.latlng);
-}
-);
-
+});
 
 map.on('click', addPoint);
 map.on('dblclick', endLine);
