@@ -13,6 +13,7 @@ var exElevation;
 
 var routeDict = {};
 
+
 //api connections
 
 function showElevation(point) {
@@ -32,7 +33,7 @@ function getElevation(point, callback) {
 	var elevation_url = 'https://api.tiles.mapbox.com/v4/surface/mapbox.mapbox-terrain-v1.json?layer=contour&fields=ele&points='+point.lng+','+point.lat+'&access_token=pk.eyJ1Ijoic2JpbmRtYW4iLCJhIjoiaENWQnlrVSJ9.0DQyCLWgA0j8yBpmvt3bGA';
 	$.get(elevation_url, function (result) {
 		elevation = result.results[0].ele;
-		console.log("get elevation" + elevation);
+		console.log("get elevation: " + elevation);
 		return callback(undefined, elevation);
 	});
 }
@@ -105,22 +106,29 @@ function endLine() {
 function calcElevation (routeID) {
 	// calculates overall elevation
 	var routeID = routeID; //asynchronous fix
-	var positiveEle = 0; //to be used laster
-	var negativeEle = 0; // to be used later
-	var totalEle = 10; //does not take into account total positive or total neg
+	var totalEle = 0; //does not take into account total positive or total neg
+	var elevationPoints = [];
 	var routePoints = routeDict[routeID].polyline.getLatLngs();
 	console.log("rp"+routePoints);
 	for (var i = 0; i < routePoints.length; i++) {
 		elevation = getElevation(routePoints[i], function(err, ele) {
-			totalEle += ele;
+			elevationPoints.push(elevation);
 		});
 	}
-	setTimeout(function () {  //should be fixed to be a callback rather than this
-		routeDict[routeID].elevation = totalEle;
-		console.log(routeDict[routeID].elevation);
-	} 
-		, 1000);	
+
+
+	setTimeout(function () {  //FIXIT add in async
+		console.log("ep: "+ elevationPoints);
+	var currentEle = elevationPoints[0];
+	for (var i = 1; i < routePoints.length; i++) {
+		totalEle += Math.abs(elevationPoints[i] - currentEle);
+		console.log ("total elevation: " + totalEle);
+		currentEle = elevationPoints[i];
 	}
+	routeDict[routeID].elevation = totalEle;
+		} , 1000);	
+	}
+
 
 
 function showRouteDict () {
@@ -130,6 +138,11 @@ function showRouteDict () {
 	}
 	$("#route-info").html(html);
 }
+
+
+
+
+
 
 
 function standardizeData () {
