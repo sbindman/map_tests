@@ -39,28 +39,33 @@ function getElevation(point, callback) {
 }
 
 
-// function getDirections(point1, point2) {
-// 	var direction_url = 'http://api.tiles.mapbox.com/v4/directions/mapbox.driving/'+point1+';'+point2+'.json?access_token=pk.eyJ1Ijoic2JpbmRtYW4iLCJhIjoiaENWQnlrVSJ9.0DQyCLWgA0j8yBpmvt3bGA'
-// 	var distance;
-// 	var duration;
-// 	var turn;
-// 	$.get(direction_url, function (result) {
-// 		distance = result.routes[0].distance; //distance is in meters, route 0 is the "optimal" route
-// 		duration = result.routes[0].duration; //time in seconds
-// 		turn = result.routes[0].steps[3].maneuver.type; //example left turn, looking at a single turn
+function getDirections(point1, point2) { //can this be changed to take in a route
+	var direction_url = 'http://api.tiles.mapbox.com/v4/directions/mapbox.driving/'+point1+';'+point2+'.json?access_token=pk.eyJ1Ijoic2JpbmRtYW4iLCJhIjoiaENWQnlrVSJ9.0DQyCLWgA0j8yBpmvt3bGA'
+	var distance = 0;
+	var duration = 0;
+	var leftTurns = 0;
+	$.get(direction_url, function (result) {
 
-// 		console.log(distance);
-// 		console.log(duration);
-// 		console.log(turn);
-// 		console.log("hello");
-// 		console.log("result" + result);
-// 		return callback (undefined, result);
+		distance += result.routes[0].distance; //distance is in meters, route 0 is the "optimal" route
+		//duration += result.routes[i].duration; //time in seconds
+		for (var i = 0; i < result.routes[0].steps.length; i++) {		
+		 	if (result.routes[0].steps[i].maneuver.type.match(/left/g)) {
+		 		console.log("it worked");
+		 	}
+		}
+			console.log(distance);
+			console.log(duration);
+			console.log(leftTurns);
+			console.log("hello");
+			console.log("result" + result);
+			return result;
+	});
+}
 
+	var point1 = [-122.42,37.78];
+	var point2 = [-77.03,38.91];
 
-// 	});
-// }
-
-//   var ex = getDirections([[37.759, -122.42487], [37.749, -122.42477]]);
+  var ex = getDirections(point1, point2);
 
 
 //constructor for a new line object
@@ -162,6 +167,8 @@ map.on('click', function(evt) {
 
 map.on('click', addPoint);
 map.on('dblclick', endLine);
+
+
 
 
 
