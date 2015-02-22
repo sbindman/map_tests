@@ -5,12 +5,10 @@ var routeNum = 0;
 var currentLine = null;
 var route_list = [];
 var points = [];
+var startPoint = null;
+var endPoint = null;
 
 //tests
-var exRoute;
-var exID;
-var exElevation;
-
 var routeDict = {};
 
 
@@ -39,8 +37,21 @@ function getElevation(point, callback) {
 }
 
 
-function getDirections(point1, point2) { //can this be changed to take in a route
-	var direction_url = 'http://api.tiles.mapbox.com/v4/directions/mapbox.driving/'+point1+';'+point2+'.json?access_token=pk.eyJ1Ijoic2JpbmRtYW4iLCJhIjoiaENWQnlrVSJ9.0DQyCLWgA0j8yBpmvt3bGA'
+function getDirectionsInfo(route) { //can this be changed to take in a route? or a list of points rather than simply start and end
+	var points = route.polyline.getLatLngs();
+	var pointsString = "";
+
+	for (i = 0; i < points.length - 1; i++) {
+		pointsString += points[i].lng + "," + points[i].lat + ";";
+	}
+	pointsString += points[points.length - 1].lng + "," + points[points.length - 1].lat; // so the last point doesnt have a semicolon
+	console.log("ps: " + pointsString);
+	console.log(typeof pointsString);
+
+	var direction_url = 'http://api.tiles.mapbox.com/v4/directions/mapbox.driving/'+ pointsString + '.json?access_token=pk.eyJ1Ijoic2JpbmRtYW4iLCJhIjoiaENWQnlrVSJ9.0DQyCLWgA0j8yBpmvt3bGA'
+
+	console.log(direction_url); //FIXIT this is not correctly working
+
 	var distance = 0;
 	var duration = 0;
 	var leftTurns = 0;
@@ -48,36 +59,73 @@ function getDirections(point1, point2) { //can this be changed to take in a rout
 
 		distance += result.routes[0].distance; //distance is in meters, route 0 is the "optimal" route
 		//duration += result.routes[i].duration; //time in seconds
-		for (var i = 0; i < result.routes[0].steps.length; i++) {		
+		for (var i = 0; i < result.routes[0].steps.length; i++) {
+			console.log("length steps:" + result.routes[0].steps.length );
+			console.log("type:" + result.routes[0].steps[i].maneuver.type);
+
 		 	if (result.routes[0].steps[i].maneuver.type.match(/left/g)) {
-		 		console.log("it worked");
+		 		leftTurns += 1;
 		 	}
 		}
-			console.log(distance);
-			console.log(duration);
-			console.log(leftTurns);
-			console.log("hello");
-			console.log("result" + result);
-			return result;
+		console.log("distance" + distance);
+		console.log("duration: " + duration);
+		console.log("left turns: " + leftTurns);
+	
+
+	var mostDirectDirection_url = 'http://api.tiles.mapbox.com/v4/directions/mapbox.driving/'+ pointsString + '.json?access_token=pk.eyJ1Ijoic2JpbmRtYW4iLCJhIjoiaENWQnlrVSJ9.0DQyCLWgA0j8yBpmvt3bGA'
+
+
+
 	});
 }
 
-	var point1 = [-122.42,37.78];
-	var point2 = [-77.03,38.91];
 
-  var ex = getDirections(point1, point2);
 
 
 //constructor for a new line object
 function line(id) {
 	this.id = id;
+	this.name = null;
 	this.polyline = L.polyline([]).addTo(map);
-	this.elevation = 10;
-	//more data associated with a specific line
+	this.elevation = null;
+	this.distance = null;
+	this.mostDirectDistance = null;
+	this.leftTurns = null;
+
+	//standardized values
+	this.sElevation = null;
+	this.sDistance = null;
+	this.sLeftTurns = null;
 }
 
 
 //general functions
+
+//create a new line object
+function startNewLine() {
+	var polyline = new line(routeNum);
+	currentLine = polyline;
+}
+
+function endLine() {
+	startPoint = currentLine.polyline.getLatLngs()[0];
+	endPoint = currentLine.polyline.getLatLngs()[currentLine.polyline.getLatLngs().length - 1]; 
+
+	routeDict[currentLine.id] = currentLine;
+	calcElevation(currentLine.id);
+	getDirectionsInfo(currentLine);
+
+
+
+	setTimeout(function () {
+		routeNum ++;
+		currentLine = null;
+	} 
+		, 2000);	
+	}
+
+
+//functionality of lines
 
 function addPoint(evt) {
 	// take a new point and add it to the end of a 
@@ -90,23 +138,8 @@ function addPoint(evt) {
 	console.log("points: " + points);
 }
 
-//create a new line object
-function startNewLine() {
-	var polyline = new line(routeNum);
-	currentLine = polyline;
-}
 
-function endLine() {
-	routeDict[currentLine.id] = currentLine;
-	calcElevation(currentLine.id);
-
-	setTimeout(function () {
-		routeNum ++;
-		currentLine = null;
-	} 
-		, 2000);	
-	}
-
+//calculations
 
 function calcElevation (routeID) {
 	// calculates overall elevation
@@ -123,7 +156,6 @@ function calcElevation (routeID) {
 
 
 	setTimeout(function () {  //FIXIT add in async
-		console.log("ep: "+ elevationPoints);
 	var currentEle = elevationPoints[0];
 	for (var i = 1; i < routePoints.length; i++) {
 		totalEle += Math.abs(elevationPoints[i] - currentEle);
@@ -136,6 +168,31 @@ function calcElevation (routeID) {
 
 
 
+function standardizeData () {
+	//will run through all of the routes and update all of the attributes to have an additional field with standardized rather than raw values
+	rawElevation = currentLine.elevation;
+	rawDistance = currentLine.distance;
+	rawLefts = currentLine.leftTurns;
+
+	//standarize elevation -- these value cutoffs can be changed but seem reasonable
+	if (rawElevation < 300) { s.Elevation = 3 };
+	else if ( rawElevation >= 300 && rawElevation < 500) { s.Elevation = 2 };
+	else if (raw Elevation >= 500 ) { s.Elevation = 1 };
+	else s.Elevation = null;
+
+
+
+
+
+
+
+}
+
+
+
+
+
+//display information
 function showRouteDict () {
 	var html = "";
 	for (var i = 0; i < Object.keys(routeDict).length; i++) {
@@ -148,12 +205,7 @@ function showRouteDict () {
 
 
 
-
-
-function standardizeData () {
-	//will run through all of the routes and update all of the attributes to have an additional field with standardized rather than raw values
-}
-
+//button on the page
 
 //button that starts a new route
 $("#add-route").on("click", startNewLine);
