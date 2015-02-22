@@ -37,7 +37,7 @@ function getElevation(point, callback) {
 }
 
 
-function getDirectionsInfo(route) { //can this be changed to take in a route? or a list of points rather than simply start and end
+function getDirectionsInfo(route) { 
 	var points = route.polyline.getLatLngs();
 	var pointsString = "";
 
@@ -53,12 +53,14 @@ function getDirectionsInfo(route) { //can this be changed to take in a route? or
 	console.log(direction_url); //FIXIT this is not correctly working
 
 	var distance = 0;
-	var duration = 0;
 	var leftTurns = 0;
+	var mostDirectDistance = 0; //FIXIT this should be cleaned up to be null and connected to a specific object
 	$.get(direction_url, function (result) {
 
-		distance += result.routes[0].distance; //distance is in meters, route 0 is the "optimal" route
-		//duration += result.routes[i].duration; //time in seconds
+		distance = result.routes[0].distance; //distance is in meters, route 0 is the "optimal" route
+		routeDict[route.id].distance = distance;
+
+
 		for (var i = 0; i < result.routes[0].steps.length; i++) {
 			console.log("length steps:" + result.routes[0].steps.length );
 			console.log("type:" + result.routes[0].steps[i].maneuver.type);
@@ -67,14 +69,20 @@ function getDirectionsInfo(route) { //can this be changed to take in a route? or
 		 		leftTurns += 1;
 		 	}
 		}
+		routeDict[route.id].leftTurns = leftTurns;
+
 		console.log("distance" + distance);
-		console.log("duration: " + duration);
 		console.log("left turns: " + leftTurns);
+
 	
+	//calculate the most direct route distance for start and end points
+	var mostDirectDirection_url = 'http://api.tiles.mapbox.com/v4/directions/mapbox.driving/'+ startPoint.lng + ',' + startPoint.lat + ';' + endPoint.lng + ',' + endPoint.lat + '.json?access_token=pk.eyJ1Ijoic2JpbmRtYW4iLCJhIjoiaENWQnlrVSJ9.0DQyCLWgA0j8yBpmvt3bGA'
 
-	var mostDirectDirection_url = 'http://api.tiles.mapbox.com/v4/directions/mapbox.driving/'+ pointsString + '.json?access_token=pk.eyJ1Ijoic2JpbmRtYW4iLCJhIjoiaENWQnlrVSJ9.0DQyCLWgA0j8yBpmvt3bGA'
-
-
+	$.get(mostDirectDirection_url, function (result) {
+		mostDirectDistance = result.routes[0].distance;
+		routeDict[route.id].mostDirectDistance = mostDirectDistance;
+		console.log("most direct distance: " + mostDirectDistance); 
+	})
 
 	});
 }
@@ -115,6 +123,11 @@ function endLine() {
 	calcElevation(currentLine.id);
 	getDirectionsInfo(currentLine);
 
+
+	setTimeout(function () {
+		standardizeData(currentLine);
+	} 
+		, 2000);	
 
 
 	setTimeout(function () {
@@ -168,23 +181,45 @@ function calcElevation (routeID) {
 
 
 
-function standardizeData () {
+function standardizeData (route) {
 	//will run through all of the routes and update all of the attributes to have an additional field with standardized rather than raw values
-	rawElevation = currentLine.elevation;
-	rawDistance = currentLine.distance;
-	rawLefts = currentLine.leftTurns;
+	var rawElevation = routeDict[route.id].elevation;
+	var rawDistance = routeDict[route.id].distance;
+	var rawDirectDistance = routeDict[route.id].mostDirectDistance;
+	var rawLefts = routeDict[route.id].leftTurns;
+	var ratio = rawDistance / rawDirectDistance;
 
 	//standarize elevation -- these value cutoffs can be changed but seem reasonable
-	if (rawElevation < 300) { s.Elevation = 3 };
-	else if ( rawElevation >= 300 && rawElevation < 500) { s.Elevation = 2 };
-	else if (raw Elevation >= 500 ) { s.Elevation = 1 };
-	else s.Elevation = null;
+	
+	console.log("raw elevation: " + routeDict[route.id].elevation);
+	if (rawElevation < 100) { 
+		routeDict[route.id].sElevation = 3;
+	} else if ( rawElevation >= 100 && rawElevation < 150 ) { 
+		routeDict[route.id].sElevation = 2;
+	} else if (rawElevation >= 150 ) { 
+		routeDict[route.id].sElevation = 1; 
+	} else {
+		routeDict[route.id].sElevation = null;
+	}
+
+	console.log("standardized elevation: " + routeDict[route.id].sElevation);
+	
+	//standardize distance -- these value cutoffs can be changed but seem reasonable
+	if (ratio < 1) { 
+		routeDict[route.id].sDistance = null;
+		console.log ("Error");
+	} else if ( ratio >= 1 && ratio < 1.3) { 
+		routeDict[route.id].sDistance = 3;
+	} else if (ratio >= 1.3 && ratio < 1.6 ) { 
+		routeDict[route.id].sDistance = 2;
+	} else if (ratio >= 1.6) { 
+		routeDict[route.id].sDistance = 1;  
+	} else {
+		routeDict[route.id].sElevation = null;
+	}
 
 
-
-
-
-
+	console.log("standardized distance: " + routeDict[route.id].sDistance);
 
 }
 
