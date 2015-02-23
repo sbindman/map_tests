@@ -7,6 +7,7 @@ var route_list = [];
 var points = [];
 var startPoint = null;
 var endPoint = null;
+var colors = ['#793FFF', '#394EE8', '#4CAAFF', '#39DCE8', '#33FFB4'];
 
 //tests
 var routeDict = {};
@@ -83,10 +84,8 @@ function getDirectionsInfo(route) {
 		routeDict[route.id].mostDirectDistance = mostDirectDistance;
 		console.log("most direct distance: " + mostDirectDistance); 
 	})
-
 	});
 }
-
 
 
 
@@ -94,7 +93,9 @@ function getDirectionsInfo(route) {
 function line(id) {
 	this.id = id;
 	this.name = null;
-	this.polyline = L.polyline([]).addTo(map);
+	var lineColor = colors[id];
+	console.log("line color:" + lineColor);
+	this.polyline = L.polyline([], { color:lineColor, weight:5.5, opacity:.8}).addTo(map);
 	this.elevation = null;
 	this.distance = null;
 	this.mostDirectDistance = null;
@@ -147,7 +148,7 @@ function addPoint(evt) {
 
 	//extra text to display points
 	points.push(point);
-	$("#points").text(points);
+	//$("#points").text(points);
 	console.log("points: " + points);
 }
 
@@ -191,7 +192,6 @@ function standardizeData (route) {
 
 	//standarize elevation -- these value cutoffs can be changed but seem reasonable
 	
-	console.log("raw elevation: " + routeDict[route.id].elevation);
 	if (rawElevation < 100) { 
 		routeDict[route.id].sElevation = 3;
 	} else if ( rawElevation >= 100 && rawElevation < 150 ) { 
@@ -218,20 +218,30 @@ function standardizeData (route) {
 		routeDict[route.id].sElevation = null;
 	}
 
-
 	console.log("standardized distance: " + routeDict[route.id].sDistance);
 
+
+//standardize left turns
+	if (rawLefts < 5) { 
+		routeDict[route.id].sLeftTurns = 3;
+	} else if ( rawLefts >= 5 && rawLefts < 10 ) { 
+		routeDict[route.id].sLeftTurns = 2;
+	} else if (rawElevation >= 10 ) { 
+		routeDict[route.id].sLeftTurns = 1; 
+	} else {
+		routeDict[route.id].sLeftTurns = null;
+	}
+
+	console.log("standardized left turns: " + routeDict[route.id].sLeftTurns);
+
 }
-
-
-
 
 
 //display information
 function showRouteDict () {
 	var html = "";
 	for (var i = 0; i < Object.keys(routeDict).length; i++) {
-		html += '<div>id: ' + i + "  route elevation: " + routeDict[i].elevation + '</div>';
+		html += '<div> id: ' + i + "  route elevation: " + routeDict[i].elevation +  " route distance: " + routeDict[i].distance + " route left turns: " + routeDict[i].leftTurns + '</div>';
 	}
 	$("#route-info").html(html);
 }
