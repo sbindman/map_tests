@@ -3,7 +3,6 @@
 //global variables
 var routeNum = 0;
 var currentLine = null;
-var route_list = [];
 var points = [];
 var startPoint = null;
 var endPoint = null;
@@ -49,7 +48,7 @@ function getDirectionsInfo(route) {
 	console.log("ps: " + pointsString);
 	console.log(typeof pointsString);
 
-	var direction_url = 'http://api.tiles.mapbox.com/v4/directions/mapbox.driving/'+ pointsString + '.json?access_token=pk.eyJ1Ijoic2JpbmRtYW4iLCJhIjoiaENWQnlrVSJ9.0DQyCLWgA0j8yBpmvt3bGA'
+	var direction_url = 'http://api.tiles.mapbox.com/v4/directions/mapbox.walking/'+ pointsString + '.json?access_token=pk.eyJ1Ijoic2JpbmRtYW4iLCJhIjoiaENWQnlrVSJ9.0DQyCLWgA0j8yBpmvt3bGA'
 
 	console.log(direction_url); //FIXIT this is not correctly working
 
@@ -77,7 +76,7 @@ function getDirectionsInfo(route) {
 
 	
 	//calculate the most direct route distance for start and end points
-	var mostDirectDirection_url = 'http://api.tiles.mapbox.com/v4/directions/mapbox.driving/'+ startPoint.lng + ',' + startPoint.lat + ';' + endPoint.lng + ',' + endPoint.lat + '.json?access_token=pk.eyJ1Ijoic2JpbmRtYW4iLCJhIjoiaENWQnlrVSJ9.0DQyCLWgA0j8yBpmvt3bGA'
+	var mostDirectDirection_url = 'http://api.tiles.mapbox.com/v4/directions/mapbox.walking/'+ startPoint.lng + ',' + startPoint.lat + ';' + endPoint.lng + ',' + endPoint.lat + '.json?access_token=pk.eyJ1Ijoic2JpbmRtYW4iLCJhIjoiaENWQnlrVSJ9.0DQyCLWgA0j8yBpmvt3bGA'
 
 	$.get(mostDirectDirection_url, function (result) {
 		mostDirectDistance = result.routes[0].distance;
@@ -96,6 +95,7 @@ function line(id) {
 	var lineColor = colors[id];
 	console.log("line color:" + lineColor);
 	this.polyline = L.polyline([], { color:lineColor, weight:5.5, opacity:.8}).addTo(map);
+	this.waypoints = [];
 	this.elevation = null;
 	this.distance = null;
 	this.mostDirectDistance = null;
@@ -150,6 +150,22 @@ function addPoint(evt) {
 	points.push(point);
 	//$("#points").text(points);
 	console.log("points: " + points);
+}
+
+function addMarker(evt) {
+	var marker = L.marker(evt.latlng, { draggable: true });
+	marker.addTo(map);
+	currentLine.waypoints.push(marker);
+}
+
+
+//remove line
+//currently this deletes a line but does not move ids in hash table so that creates an issue with printing results
+
+function deleteLine () {
+	currentLine = routeDict[1]; //example, should be able to delete whichever line is elected
+	map.removeLayer(currentLine.polyline);
+	delete routeDict[currentLine.id];
 }
 
 
@@ -241,7 +257,7 @@ function standardizeData (route) {
 function showRouteDict () {
 	var html = "";
 	for (var i = 0; i < Object.keys(routeDict).length; i++) {
-		html += '<div> id: ' + i + "  route elevation: " + routeDict[i].elevation +  " route distance: " + routeDict[i].distance + " route left turns: " + routeDict[i].leftTurns + '</div>';
+		html += '<div> id: ' + i + "  route elevation: " + routeDict[i].elevation +  " route distance: " + routeDict[i].distance + " route left turns: " + routeDict[i].leftTurns + ' standardized elevation:' + routeDict[i].sElevation + "  standardized distance: " + routeDict[i].sDistance +  " standardized left turns: " + routeDict[i].sleftTurns + '</div>';
 	}
 	$("#route-info").html(html);
 }
@@ -257,12 +273,16 @@ $("#add-route").on("click", startNewLine);
 $("#calcElevation").on("click", calcElevation);
 $("#routes").on("click", showRouteDict);
 
+//remove route
+$("#remove-route").on("click", deleteLine);
+
 //show elevation on click
 map.on('click', function(evt) {
 	showElevation(evt.latlng);
 });
 
-map.on('click', addPoint);
+//map.on('click', addPoint);
+map.on('click', addMarker);
 map.on('dblclick', endLine);
 
 
