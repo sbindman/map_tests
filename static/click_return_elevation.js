@@ -21,7 +21,7 @@ function showElevation(point) {
 	$.get(elevation_url, function (result) {
 		elevation = result.results[0].ele;
 		$("#map-results").text(elevation);
-		return elevation;
+	return elevation;
 	});
 }
 
@@ -82,7 +82,7 @@ function getDirectionsInfo(route) {
 		mostDirectDistance = result.routes[0].distance;
 		routeDict[route.id].mostDirectDistance = mostDirectDistance;
 		console.log("most direct distance: " + mostDirectDistance); 
-	})
+	});
 	});
 }
 
@@ -93,7 +93,6 @@ function line(id) {
 	this.id = id;
 	this.name = null;
 	var lineColor = colors[id];
-	console.log("line color:" + lineColor);
 	this.polyline = L.polyline([], { color:lineColor, weight:5.5, opacity:.8}).addTo(map);
 	this.waypoints = [];
 	this.elevation = null;
@@ -117,18 +116,20 @@ function startNewLine() {
 }
 
 function endLine() {
-	startPoint = currentLine.polyline.getLatLngs()[0];
-	endPoint = currentLine.polyline.getLatLngs()[currentLine.polyline.getLatLngs().length - 1]; 
+	startPoint = currentLine.waypoints[0];
+	endPoint = currentLine.waypoints[currentLine.waypoints.length - 1]; 
 
 	routeDict[currentLine.id] = currentLine;
-	calcElevation(currentLine.id);
-	getDirectionsInfo(currentLine);
 
 
-	setTimeout(function () {
-		standardizeData(currentLine);
-	} 
-		, 2000);	
+	// calcElevation(currentLine.id);
+	// getDirectionsInfo(currentLine);
+
+
+	// setTimeout(function () {
+	// 	standardizeData(currentLine);
+	// } 
+	// 	, 2000);	
 
 
 	setTimeout(function () {
@@ -136,27 +137,74 @@ function endLine() {
 		currentLine = null;
 	} 
 		, 2000);	
-	}
+	 }
 
 
 //functionality of lines
 
-function addPoint(evt) {
-	// take a new point and add it to the end of a 
-	var point = evt.latlng;
-	currentLine.polyline.addLatLng(point);
+// function addPoint(evt) {
+// 	// take a new point and add it to the end of a 
+// 	var point = evt.latlng;
+// 	currentLine.polyline.addLatLng(point);
 
-	//extra text to display points
-	points.push(point);
-	//$("#points").text(points);
-	console.log("points: " + points);
-}
+// 	//extra text to display points
+// 	points.push(point);
+// 	//$("#points").text(points);
+// 	console.log("points: " + points);
+// }
 
+//add marker
 function addMarker(evt) {
-	var marker = L.marker(evt.latlng, { draggable: true });
-	marker.addTo(map);
-	currentLine.waypoints.push(marker);
+	if (currentLine == null) {
+		console.log("Error: Can't add a point when there is no active route");
+	}
+	else if (currentLine != null) {
+		var marker = L.marker(evt.latlng, { draggable: true });
+		marker.on('dragend', drawRoute);
+		marker.addTo(map);
+		currentLine.waypoints.push(marker);
+		drawRoute();
+	}
 }
+
+//draw route
+function drawRoute() {
+	//this function should draw a route based on a number of waypoints
+
+	if (currentLine.waypoints.length > 1 ) {
+		var waypointsString = "";
+		var pointsToDraw = [];
+
+		for (i = 0; i < currentLine.waypoints.length - 1; i++) {
+			var lat = currentLine.waypoints[i].getLatLng().lat;
+			var lng = currentLine.waypoints[i].getLatLng().lng;		
+			waypointsString += lng + "," + lat + ";";
+	  	}
+	  	//accounts for omitting semi-colon
+	  	var lastLat = currentLine.waypoints[currentLine.waypoints.length - 1].getLatLng().lat;
+	  	var lastLng = currentLine.waypoints[currentLine.waypoints.length - 1].getLatLng().lng;
+
+	  	waypointsString += lastLng + "," + lastLat;
+	  	console.log("point string" + waypointsString);
+
+		var directionUrl = 'http://api.tiles.mapbox.com/v4/directions/mapbox.walking/'+ waypointsString + '.json?access_token=pk.eyJ1Ijoic2JpbmRtYW4iLCJhIjoiaENWQnlrVSJ9.0DQyCLWgA0j8yBpmvt3bGA'
+
+		console.log(directionUrl);
+
+		$.get(directionUrl, function (result) {
+		var route = result.routes[0].geometry.coordinates;
+
+		pointsToDraw = route.map( function(coordinate) {
+			return [coordinate[1], coordinate[0]]; //use this to switch lat and long
+		});
+
+		currentLine.polyline.setLatLngs(pointsToDraw);
+	});
+ 	
+ 	} else {
+ 		console.log("Error, can't draw unless more than 1 point")
+ 	}
+ }
 
 
 //remove line
